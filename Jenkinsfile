@@ -121,6 +121,3 @@ pipeline {
         }
     }
 }
-
-volumes:
-  mongo-data:
