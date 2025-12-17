@@ -7,10 +7,11 @@ pipeline {
         BACKEND_CONTAINER = "studentnotes-backend"
         FRONTEND_CONTAINER = "studentnotes-frontend"
 
-        MONGODB_URI = "${env.MONGODB_URI ?: 'mongodb://studentnotes-mongodb:27017/studentnotes'}"
-        JWT_SECRET = "${env.JWT_SECRET ?: 'your-secret-key-change-in-production'}"
-        BACKEND_IMAGE = "${env.BACKEND_IMAGE ?: 'studentnotes-backend:${env.BUILD_NUMBER}'}"
-        FRONTEND_IMAGE = "${env.FRONTEND_IMAGE ?: 'studentnotes-frontend:${env.BUILD_NUMBER}'}"
+        // Set default values in Groovy
+        MONGODB_URI = "mongodb://studentnotes-mongodb:27017/studentnotes"
+        JWT_SECRET = "your-secret-key-change-in-production"
+        BACKEND_IMAGE = "studentnotes-backend:${env.BUILD_NUMBER}"
+        FRONTEND_IMAGE = "studentnotes-frontend:${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -24,26 +25,24 @@ pipeline {
 
         stage('Create Docker Network') {
             steps {
-                sh 'docker network inspect $NETWORK || docker network create $NETWORK'
+                sh 'docker network inspect ${NETWORK} || docker network create ${NETWORK}'
             }
         }
 
         stage('Remove Old Containers') {
             steps {
-                sh '''
-                    docker rm -f $MONGO_CONTAINER || true
-                    docker rm -f $BACKEND_CONTAINER || true
-                    docker rm -f $FRONTEND_CONTAINER || true
-                '''
+                sh """
+                    docker rm -f ${MONGO_CONTAINER} || true
+                    docker rm -f ${BACKEND_CONTAINER} || true
+                    docker rm -f ${FRONTEND_CONTAINER} || true
+                """
             }
         }
 
         stage('Build Backend Docker Image') {
             steps {
                 dir('backend') {
-                    sh """
-                        docker build -t ${BACKEND_IMAGE} .
-                    """
+                    sh "docker build -t ${BACKEND_IMAGE} ."
                 }
             }
         }
@@ -51,9 +50,7 @@ pipeline {
         stage('Build Frontend Docker Image') {
             steps {
                 dir('frontend') {
-                    sh """
-                        docker build -t ${FRONTEND_IMAGE} .
-                    """
+                    sh "docker build -t ${FRONTEND_IMAGE} ."
                 }
             }
         }
@@ -62,8 +59,8 @@ pipeline {
             steps {
                 sh """
                     docker run -d \
-                      --name $MONGO_CONTAINER \
-                      --network $NETWORK \
+                      --name ${MONGO_CONTAINER} \
+                      --network ${NETWORK} \
                       -v mongo-data:/data/db \
                       mongo
                 """
@@ -74,8 +71,8 @@ pipeline {
             steps {
                 sh """
                     docker run -d \
-                      --name $BACKEND_CONTAINER \
-                      --network $NETWORK \
+                      --name ${BACKEND_CONTAINER} \
+                      --network ${NETWORK} \
                       -p 8082:3000 \
                       -e MONGODB_URI=${MONGODB_URI} \
                       -e JWT_SECRET=${JWT_SECRET} \
@@ -88,8 +85,8 @@ pipeline {
             steps {
                 sh """
                     docker run -d \
-                      --name $FRONTEND_CONTAINER \
-                      --network $NETWORK \
+                      --name ${FRONTEND_CONTAINER} \
+                      --network ${NETWORK} \
                       -p 8081:80 \
                       ${FRONTEND_IMAGE}
                 """
@@ -99,7 +96,7 @@ pipeline {
         stage('Test Backend') {
             steps {
                 sh """
-                    # Simple health check for backend
+                    # Wait for backend to start
                     sleep 5
                     curl -f http://localhost:8082/health || echo 'Backend health check failed'
                 """
