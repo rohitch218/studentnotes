@@ -12,8 +12,9 @@ pipeline {
     
     stages {
         stage('Checkout') {
-            steps {
-                checkout scm
+           steps {
+                git branch: 'main',
+                    url: 'https://github.com/rohitch218/studentnotes.git'
             }
         }
         
